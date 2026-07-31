@@ -192,10 +192,10 @@ st.sidebar.markdown("---")
 nav_choice = st.sidebar.radio(
     "📌 Navigation Menu",
     [
-        "🏠 Home & Resale Analytics",
+        "📊 Market Dashboard",
         "🎯 Single Used Vehicle Valuation",
         "📈 Price Trend Analysis (1995-2026)",
-        "⚔️ Side-by-Side Model Comparison"
+        "🚗 Model Comparison"
     ]
 )
 
@@ -205,7 +205,7 @@ st.sidebar.caption("© 2026 AutoValuate Analytics | GTU Engineering Project")
 # ---------------------------------------------------------
 # PAGE 1: HOME & RESALE ANALYTICS
 # ---------------------------------------------------------
-if nav_choice == "🏠 Home & Resale Analytics":
+if nav_choice == "📊 Market Dashboard":
     st.title("🚘 Used Car Resale Valuation Platform")
     st.markdown("##### Machine Learning Powered Vehicle Valuation & Market Resale Intelligence System")
 
@@ -353,95 +353,130 @@ elif nav_choice == "📈 Price Trend Analysis (1995-2026)":
     brand_df = df[df['brand'] == trend_brand]
     all_brand_models = clean_model_names(brand_df['clean_model'].unique())
     
-    trend_models = st.multiselect(
-        "Select Models to Compare", 
-        all_brand_models, 
-        default=all_brand_models[:2] if len(all_brand_models) >= 2 else all_brand_models,
-        key="trend_models"
-    )
+    # Check if models exist for the selected brand
+    if not all_brand_models:
+        st.warning(f"⚠️ No models available for brand '{trend_brand}'.")
+    else:
+        trend_models = st.multiselect(
+            "Select Models to Compare", 
+            all_brand_models, 
+            default=all_brand_models[:2] if len(all_brand_models) >= 2 else all_brand_models,
+            key="trend_models"
+        )
 
-    if trend_models:
-        trend_data = []
+        if trend_models:
+            trend_data = []
 
-        for m_name in trend_models:
-            sub_m_df = brand_df[brand_df['clean_model'].str.contains(m_name, case=False, na=False)]
-            
-            def_fuel = sub_m_df['fuel'].mode()[0] if 'fuel' in sub_m_df.columns and not sub_m_df['fuel'].empty else 'Petrol'
-            def_trans = sub_m_df['transmission'].mode()[0] if 'transmission' in sub_m_df.columns and not sub_m_df['transmission'].empty else 'Manual'
-            def_seller = sub_m_df['seller_type'].mode()[0] if 'seller_type' in sub_m_df.columns and not sub_m_df['seller_type'].empty else 'Individual'
-            def_owner = sub_m_df['owner'].mode()[0] if 'owner' in sub_m_df.columns and not sub_m_df['owner'].empty else 'First Owner'
-            
-            def_mileage = get_safe_median(sub_m_df['mileage'], 18.0) if 'mileage' in sub_m_df.columns else 18.0
-            def_engine = get_safe_median(sub_m_df['engine'], 1200.0) if 'engine' in sub_m_df.columns else 1200.0
-            def_power = get_safe_median(sub_m_df['max_power'], 85.0) if 'max_power' in sub_m_df.columns else 85.0
-            def_seats = get_safe_median(sub_m_df['seats'], 5.0) if 'seats' in sub_m_df.columns else 5.0
-
-            prev_val = None
-
-            for yr in range(1995, 2027):
-                existing = sub_m_df[sub_m_df['year'] == yr][target_p_col].mean() if target_p_col and not sub_m_df.empty else np.nan
+            for m_name in trend_models:
+                # Better string matching logic
+                sub_m_df = brand_df[
+               brand_df['clean_model'].str.lower().str.strip() == m_name.lower().strip()
+                ]
                 
-                if pd.notna(existing) and existing > 0:
-                    val = float(existing)
-                else:
-                    est_km = max(5000, (2026 - yr) * 8000)
-                    inp_trend = prepare_input_for_model(
-                        m_name, yr, est_km, def_fuel, def_seller, 
-                        def_trans, def_owner, def_mileage, def_engine, def_power, def_seats, df, model
-                    )
-                    pred_val = model.predict(inp_trend)[0]
-                    val = max(15000.0, float(pred_val))
+                # Fallback to contains if exact match is empty
+                if sub_m_df.empty:
+                    sub_m_df = brand_df[brand_df['clean_model'].str.contains(m_name, case=False, na=False)]
+                
+                def_fuel = sub_m_df['fuel'].mode()[0] if ('fuel' in sub_m_df.columns and not sub_m_df['fuel'].empty) else 'Petrol'
+                def_trans = sub_m_df['transmission'].mode()[0] if ('transmission' in sub_m_df.columns and not sub_m_df['transmission'].empty) else 'Manual'
+                def_seller = sub_m_df['seller_type'].mode()[0] if ('seller_type' in sub_m_df.columns and not sub_m_df['seller_type'].empty) else 'Individual'
+                def_owner = sub_m_df['owner'].mode()[0] if ('owner' in sub_m_df.columns and not sub_m_df['owner'].empty) else 'First Owner'
+                
+                def_mileage = get_safe_median(sub_m_df['mileage'], 18.0) if 'mileage' in sub_m_df.columns else 18.0
+                def_engine = get_safe_median(sub_m_df['engine'], 1200.0) if 'engine' in sub_m_df.columns else 1200.0
+                def_power = get_safe_median(sub_m_df['max_power'], 85.0) if 'max_power' in sub_m_df.columns else 85.0
+                def_seats = get_safe_median(sub_m_df['seats'], 5.0) if 'seats' in sub_m_df.columns else 5.0
 
-                if prev_val is not None and prev_val > 0:
-                    diff_amt = val - prev_val
-                    pct_inc = ((val - prev_val) / prev_val) * 100
-                else:
-                    diff_amt = 0.0
-                    pct_inc = 0.0
+                prev_val = None
 
-                prev_val = val
+                for yr in range(1995, 2027):
+                    existing = sub_m_df[sub_m_df['year'] == yr][target_p_col].mean() if (target_p_col and not sub_m_df.empty) else np.nan
+                    
+                    if pd.notna(existing) and existing > 0:
+                        val = float(existing)
+                    else:
+                        est_km = max(5000, (2026 - yr) * 8000)
+                        inp_trend = prepare_input_for_model(
+                            m_name, yr, est_km, def_fuel, def_seller, 
+                            def_trans, def_owner, def_mileage, def_engine, def_power, def_seats, df, model
+                        )
+                        pred_val = model.predict(inp_trend)[0]
+                        val = max(15000.0, float(pred_val))
 
-                trend_data.append({
-                    'Model': m_name,
-                    'Year': yr,
-                    'Average Resale Price (₹)': round(val, 2),
-                    'Price Change (₹)': round(diff_amt, 2),
-                    'Increment (%)': round(pct_inc, 2)
-                })
+                    if prev_val is not None and prev_val > 0:
+                        diff_amt = val - prev_val
+                        pct_inc = ((val - prev_val) / prev_val) * 100
+                    else:
+                        diff_amt = 0.0
+                        pct_inc = 0.0
 
-        trend_full_df = pd.DataFrame(trend_data)
+                    prev_val = val
 
-        st.subheader("📈 Year-wise Price Trend Chart (1995 - 2026)")
-        fig_line = px.line(
-            trend_full_df, 
-            x='Year', 
-            y='Average Resale Price (₹)', 
-            color='Model',
-            markers=True,
-            template="plotly_white"
-        )
-        fig_line.update_layout(xaxis_dtick=2, hovermode="x unified")
-        st.plotly_chart(fig_line, use_container_width=True)
+                    trend_data.append({
+                        'Model': m_name,
+                        'Year': yr,
+                        'Average Resale Price (₹)': round(val, 2),
+                        'Price Change (₹)': round(diff_amt, 2),
+                        'Increment (%)': round(pct_inc, 2)
+                    })
 
-        st.subheader("📋 Year-wise Price & Growth Data Table")
+            if trend_data:
+                trend_full_df = pd.DataFrame(trend_data)
 
-        disp_df = trend_full_df.copy()
-        disp_df['Price (₹)'] = disp_df['Average Resale Price (₹)'].apply(lambda x: f"₹ {x:,.2f}")
-        disp_df['Yearly Increase (₹)'] = disp_df['Price Change (₹)'].apply(
-            lambda x: f"+₹ {x:,.2f}" if x > 0 else (f"-₹ {abs(x):,.2f}" if x < 0 else "Base Year")
-        )
-        disp_df['Yearly Growth (%)'] = disp_df['Increment (%)'].apply(
-            lambda x: f"+{x:.2f}%" if x > 0 else (f"{x:.2f}%" if x < 0 else "Base Year")
-        )
+                # ---------------------------------------------------------
+                # GRAPH 1: LINE CHART
+                # ---------------------------------------------------------
+                st.subheader("📈 Year-wise Price Trend Line Chart (1995 - 2026)")
+                fig_line = px.line(
+                    trend_full_df, 
+                    x='Year', 
+                    y='Average Resale Price (₹)', 
+                    color='Model',
+                    markers=True,
+                    template="plotly_white"
+                )
+                fig_line.update_layout(xaxis_dtick=2, hovermode="x unified")
+                st.plotly_chart(fig_line, use_container_width=True)
 
-        final_table = disp_df[['Model', 'Year', 'Price (₹)', 'Yearly Increase (₹)', 'Yearly Growth (%)']]
-        st.dataframe(final_table, use_container_width=True, hide_index=True)
+                # ---------------------------------------------------------
+                # GRAPH 2: BAR CHART
+                # ---------------------------------------------------------
+                st.subheader("📊 Year-wise Price Comparison Bar Chart")
+                fig_bar = px.bar(
+                    trend_full_df,
+                    x='Year',
+                    y='Average Resale Price (₹)',
+                    color='Model',
+                    barmode='group',
+                    template="plotly_white"
+                )
+                fig_bar.update_layout(xaxis_dtick=2, hovermode="x unified")
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+                # ---------------------------------------------------------
+                # DATA TABLE
+                # ---------------------------------------------------------
+                st.subheader("📋 Year-wise Price & Growth Data Table")
+
+                disp_df = trend_full_df.copy()
+                disp_df['Price (₹)'] = disp_df['Average Resale Price (₹)'].apply(lambda x: f"₹ {x:,.2f}")
+                disp_df['Yearly Increase (₹)'] = disp_df['Price Change (₹)'].apply(
+                    lambda x: f"+₹ {x:,.2f}" if x > 0 else (f"-₹ {abs(x):,.2f}" if x < 0 else "Base Year")
+                )
+                disp_df['Yearly Growth (%)'] = disp_df['Increment (%)'].apply(
+                    lambda x: f"+{x:.2f}%" if x > 0 else (f"{x:.2f}%" if x < 0 else "Base Year")
+                )
+
+                final_table = disp_df[['Model', 'Year', 'Price (₹)', 'Yearly Increase (₹)', 'Yearly Growth (%)']]
+                st.dataframe(final_table, use_container_width=True, hide_index=True)
+            else:
+                st.warning("⚠️ No trend data available for the selected models.")
 
 # ---------------------------------------------------------
 # PAGE 4: SIDE-BY-SIDE COMPARISON
 # ---------------------------------------------------------
-elif nav_choice == "⚔️ Side-by-Side Model Comparison":
-    st.header("⚔️ Side-by-Side Resale Price Comparison")
+elif nav_choice == "🚗 Model Comparison":
+    st.header("⚖️ Side-by-Side Resale Price Comparison")
     
     col_a, col_b = st.columns(2)
     
