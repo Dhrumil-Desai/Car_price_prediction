@@ -19,30 +19,71 @@ st.set_page_config(
 # Custom CSS for better Auto-Theme UI
 st.markdown("""
     <style>
-    .main {
-        background-color: #f8f9fa;
+    /* Streamlit Default Container Border Clear Box */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
     }
-    .stMetric {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #e9ecef;
+
+    /* Inner box lines hatavva mate */
+    div[data-testid="stMetric"] > div {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
     }
-    div[data-testid="stSidebar"] {
-        background-color: #1e293b;
-        color: white;
+
+    /* Text Colors inside Card Box */
+    div[data-testid="stMetric"] label {
+        color: #64748b !important; /* Label Subtext Color */
+        font-size: 14px !important;
     }
-    .stButton>button {
-        border-radius: 8px;
-        font-weight: 600;
-        background-color: #ff4b4b;
-        color: white;
-        border: none;
+
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+        color: #0f172a !important; /* Main Metric Value Color */
+        font-weight: 700 !important;
+    }
+
+    /* Custom HTML div Box (If using custom HTML) */
+    .single-card {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+    }
+    .single-card * {
+        color: #0f172a !important;
+    }
+
+    /* Custom Button Styling */
+    div.stButton > button {
+        background-color: #ff4b4b !important; /* Solid Red/Coral Accent */
+        color: #ffffff !important;           /* Bold White Text */
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        box-shadow: 0 4px 10px rgba(255, 75, 75, 0.25) !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+    }
+
+    /* Button Hover & Active Effect */
+    div.stButton > button:hover {
+        background-color: #e03e3e !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 15px rgba(255, 75, 75, 0.4) !important;
+        transform: translateY(-1px);
+    }
+    div.stButton > button:active {
+        transform: translateY(0px);
     }
     </style>
 """, unsafe_allow_html=True)
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Initialize Session State for Valuation History
@@ -303,7 +344,7 @@ elif nav_choice == "🎯 Single Used Vehicle Valuation":
         max_power = st.slider("Max Power (bhp)", min_value=0, max_value=200, value=0)
         seats = st.slider("Seating Capacity", min_value=4, max_value=10, value=4)
 
-    if st.button("🚀 Calculate Estimated Resale Price", use_container_width=True):
+    if st.button("🔍 Get Market Valuation", use_container_width=True):
         processed_input = prepare_input_for_model(
             selected_model, year, kms_driven, fuel_type, seller_type, 
             transmission, owner, mileage, engine, max_power, seats, df, model
@@ -502,7 +543,7 @@ elif nav_choice == "🚗 Model Comparison":
         y2 = st.slider("Year 2", 1995, 2026, value=1995, key="y2")
         km2 = st.slider("KMs Driven 2", min_value=0, max_value=300000, value=0, key="km2")
 
-    if st.button("⚖️ Compare Resale Values", use_container_width=True):
+    if st.button("📈 Compare Valuation", use_container_width=True):
         input_1 = prepare_input_for_model(m1, y1, km1, 'Diesel', 'Individual', 'Manual', 'First Owner', 18.0, 1248, 83.0, 5, df, model)
         input_2 = prepare_input_for_model(m2, y2, km2, 'Petrol', 'Individual', 'Automatic', 'First Owner', 19.0, 1498, 103.0, 5, df, model)
 

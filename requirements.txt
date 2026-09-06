@@ -3,3 +3,5 @@ pandas
 numpy
 scikit-learn
 pickle-mixin
+
+#python -m streamlit run app.py
